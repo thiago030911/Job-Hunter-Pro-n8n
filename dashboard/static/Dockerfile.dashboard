@@ -1,0 +1,29 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements primero para cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar la aplicación
+COPY . .
+
+# Crear usuario no root
+RUN useradd -m -u 1000 streamlit && \
+    chown -R streamlit:streamlit /app
+USER streamlit
+
+# Exponer puerto
+EXPOSE 8501
+
+# Comando para ejecutar
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

@@ -1,0 +1,38 @@
+{
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "docker.explorerRefreshInterval": 3000,
+  "docker.commands.composeUp": [
+    "docker-compose",
+    "-f",
+    "docker-compose.yml",
+    "up",
+    "-d",
+    "--build"
+  ],
+  "docker.commands.composeDown": [
+    "docker-compose",
+    "-f",
+    "docker-compose.yml",
+    "down"
+  ],
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "bash",
+  "containers.commands.composeUp": [
+    "docker-compose",
+    "-f",
+    "docker-compose.yml",
+    "up",
+    "-d",
+    "--build"
+  ],
+  "containers.commands.composeDown": [
+    "docker-compose",
+    "-f",
+    "docker-compose.yml",
+    "down"
+  ]
+}

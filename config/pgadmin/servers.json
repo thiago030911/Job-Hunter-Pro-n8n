@@ -1,0 +1,14 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "JobHunter PostgreSQL",
+            "Group": "Servers",
+            "Port": 5432,
+            "Username": "n8n_user",
+            "Host": "postgres",
+            "SSLMode": "prefer",
+            "MaintenanceDB": "job_hunter_db",
+            "Comment": "Base de datos Job Hunter"
+        }
+    }
+}

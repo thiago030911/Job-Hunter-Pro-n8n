@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: jobhunter-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: job_hunter_db
+      POSTGRES_USER: n8n_user
+      POSTGRES_PASSWORD: n8n_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./data/postgres/backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n_user -d job_hunter_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobhunter-network
+
+  # n8n - Automatización
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: jobhunter-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=job_hunter_db
+      - DB_POSTGRESDB_USER=n8n_user
+      - DB_POSTGRESDB_PASSWORD=n8n_password
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - N8N_ENCRYPTION_KEY=supersecretkey32chars123456789012
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_METRICS=true
+      - GENERIC_TIMEZONE=America/Lima
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+      - N8N_USER_FOLDER=/home/node/.n8n
+      - NODE_ENV=production
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./flows:/home/node/flows
+      - ./config:/home/node/config
+      - ./data:/home/node/data
+      - ./logs:/home/node/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobhunter-network
+
+  # pgAdmin - Para administrar PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: jobhunter-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@jobhunter.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./config/pgadmin/servers.json:/pgadmin4/servers.json
+    depends_on:
+      - postgres
+    networks:
+      - jobhunter-network
+
+  # Dashboard Streamlit
+  dashboard:
+    build: 
+      context: ./dashboard
+      dockerfile: Dockerfile.dashboard
+    container_name: jobhunter-dashboard
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=job_hunter_db
+      - DB_USER=n8n_user
+      - DB_PASSWORD=n8n_password
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_THEME_BASE=dark
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    volumes:
+      - ./dashboard:/app
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobhunter-network
+
+networks:
+  jobhunter-network:
+    driver: bridge
+    name: jobhunter-network
+
+volumes:
+  postgres_data:
+    driver: local
+    name: jobhunter-postgres-data
+  n8n_data:
+    driver: local
+    name: jobhunter-n8n-data
+  pgadmin_data:
+    driver: local
+    name: jobhunter-pgadmin-data
